@@ -65,6 +65,8 @@ const wss = new WebSocketServer({ server });
 
 // WebSocket connection handler
 wss.on("connection", (socket: WebSocket) => {
+  console.log("New WebSocket connection established");
+
   // Send welcome message on new connection
   const welcome = {
     type: "welcome",
@@ -72,10 +74,42 @@ wss.on("connection", (socket: WebSocket) => {
   };
   socket.send(JSON.stringify(welcome));
 
+  // Set up pong listener to track client responses
+  socket.on("pong", () => {
+    if (process.env.LOG_LEVEL === "debug") {
+      console.log("Received pong from client");
+    }
+    // Reset missed pongs counter in the listener
+    missedPongs = 0;
+  });
+
   // Set up ping interval to keep connection alive
+  let missedPongs = 0;
   const pingInterval = setInterval(() => {
     if (socket.readyState === WebSocket.OPEN) {
+      // Only log in debug mode to avoid filling logs
+      if (process.env.LOG_LEVEL === "debug") {
+        console.log(`Sending ping to client...`);
+      }
+
+      // Send ping
       socket.ping();
+
+      // Check for missed pongs
+      missedPongs++;
+      if (missedPongs >= 3) {
+        console.warn(
+          `Client missed ${missedPongs} pongs, connection may be dead`
+        );
+        // After too many missed pongs, terminate the connection
+        if (missedPongs >= 5) {
+          console.error(
+            `Client unresponsive after ${missedPongs} missed pongs, terminating connection`
+          );
+          socket.terminate();
+          clearInterval(pingInterval);
+        }
+      }
     }
   }, WS_HEARTBEAT_INTERVAL);
 
