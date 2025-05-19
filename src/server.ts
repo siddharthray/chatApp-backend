@@ -30,8 +30,11 @@ const corsMiddleware = cors(corsOptions);
 app.use(corsMiddleware);
 app.use(express.json());
 
+// Serve static files directly from the root
+app.use(express.static(STATIC_DIR));
+
 // Add basic logging middleware
-app.use((req, res, next) => {
+app.use((req, _, next) => {
   if (process.env.LOG_LEVEL === "debug" || process.env.LOG_LEVEL === "info") {
     console.log(`${new Date().toISOString()} [${req.method}] ${req.url}`);
   }
@@ -39,7 +42,7 @@ app.use((req, res, next) => {
 });
 
 // Health check endpoint
-app.get(`${API_PREFIX}/health`, (req, res) => {
+app.get(`${API_PREFIX}/health`, (_, res) => {
   res.json({
     status: "ok",
     message: "Server is running",
@@ -48,24 +51,20 @@ app.get(`${API_PREFIX}/health`, (req, res) => {
   });
 });
 
-// Serve static files directly from the root
-app.use(express.static(STATIC_DIR));
-
 // Create HTTP server
 const server = http.createServer(app);
-
-// Define expected message format
-interface ClientMessage {
-  type: string;
-  payload?: any;
-}
 
 // Create WebSocket server attached to HTTP server
 const wss = new WebSocketServer({ server });
 
 // WebSocket connection handler
 wss.on("connection", (socket: WebSocket) => {
-  console.log("New WebSocket connection established");
+  // Add a unique ID to each connection for better logging
+  const connectionTime = new Date().toISOString();
+  (socket as any)._socketId = connectionTime.substring(11, 19); // Use time as ID
+  const clientId = (socket as any)._socketId;
+
+  console.log(`[WS] New WebSocket connection established: Client ${clientId}`);
 
   // Send welcome message on new connection
   const welcome = {
@@ -76,9 +75,9 @@ wss.on("connection", (socket: WebSocket) => {
 
   // Set up pong listener to track client responses
   socket.on("pong", () => {
-    if (process.env.LOG_LEVEL === "debug") {
-      console.log("Received pong from client");
-    }
+    console.log(
+      `[SERVER HEARTBEAT] ✅ Automatic pong received from client ${clientId}`
+    );
     // Reset missed pongs counter in the listener
     missedPongs = 0;
   });
@@ -87,10 +86,11 @@ wss.on("connection", (socket: WebSocket) => {
   let missedPongs = 0;
   const pingInterval = setInterval(() => {
     if (socket.readyState === WebSocket.OPEN) {
-      // Only log in debug mode to avoid filling logs
-      if (process.env.LOG_LEVEL === "debug") {
-        console.log(`Sending ping to client...`);
-      }
+      // Log ping with client identifier (we'll use connection timestamp)
+      const clientId = (socket as any)._socketId;
+      console.log(
+        `\n[SERVER HEARTBEAT] ❤️ Automatic 30-second ping sent to client ${clientId}`
+      );
 
       // Send ping
       socket.ping();
@@ -99,12 +99,12 @@ wss.on("connection", (socket: WebSocket) => {
       missedPongs++;
       if (missedPongs >= 3) {
         console.warn(
-          `Client missed ${missedPongs} pongs, connection may be dead`
+          `[SERVER HEARTBEAT WARNING] ⚠️ Client ${clientId} missed ${missedPongs} pongs, connection may be dead`
         );
         // After too many missed pongs, terminate the connection
         if (missedPongs >= 5) {
           console.error(
-            `Client unresponsive after ${missedPongs} missed pongs, terminating connection`
+            `[SERVER HEARTBEAT ERROR] ❌ Client ${clientId} unresponsive after ${missedPongs} missed pongs, terminating connection`
           );
           socket.terminate();
           clearInterval(pingInterval);
@@ -115,6 +115,7 @@ wss.on("connection", (socket: WebSocket) => {
 
   // Handle incoming messages
   socket.on("message", (message: string) => {
+    console.log(`[MESSAGE FROM CLIENT ${clientId}] Received client message`);
     try {
       const parsed: unknown = JSON.parse(message.toString());
 
@@ -153,11 +154,31 @@ wss.on("connection", (socket: WebSocket) => {
   });
 
   // Handle connection close
-  socket.on("close", () => {
-    console.log("Client disconnected");
+  socket.on("close", (code: number, reason: string) => {
+    const clientId = (socket as any)._socketId;
+    console.log(
+      `\n[CLIENT DISCONNECTED] Client ${clientId} disconnected with code: ${code}, reason: ${
+        reason || "No reason provided"
+      }`
+    );
+    console.log(
+      `[CLIENT DISCONNECTED] Stopping heartbeat checks for client ${clientId}`
+    );
     clearInterval(pingInterval);
+
+    // Log active connections
+    const activeConnections = wss.clients.size;
+    console.log(
+      `[SERVER STATUS] Active connections remaining: ${activeConnections}`
+    );
   });
 });
+
+// Define expected message format
+interface ClientMessage {
+  type: string;
+  payload?: any;
+}
 
 // Type guard to validate incoming message
 function isValidClientMessage(obj: any): obj is ClientMessage {
