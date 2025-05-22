@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Socket.IO</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  </head>
+  <body>
+    <h3>Socket.IO</h3>
+    <input id="sio-msg" placeholder="Type message" />
+    <button onclick="sendSIO()">Send</button>
+    <ul id="sio-log"></ul>
+
+    <script>
+      const socket = io();
+
+      socket.on("message", (msg) => {
+        const li = document.createElement("li");
+        li.textContent = msg;
+        document.getElementById("sio-log").appendChild(li);
+      });
+
+      function sendSIO() {
+        const msg = document.getElementById("sio-msg").value;
+        socket.emit("message", msg);
+      }
+    </script>
+  </body>
+</html>

@@ -1,18 +1,24 @@
 {
   "name": "chat-app",
+  "type": "module",
   "scripts": {
-  "dev": "nodemon src/server.ts",
-  "start": "ts-node src/server.ts",
-  "build": "tsc",
-  "start:prod": "node dist/server.js"
-},
+    "dev": "nodemon src/server.ts",
+    "start": "ts-node src/server.ts",
+    "build": "tsc",
+    "start:prod": "node dist/server.js"
+  },
   "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
     "express": "^5.1.0",
+    "morgan": "^1.10.0",
     "socket.io": "^4.8.1",
+    "uuid": "^11.1.0",
     "ws": "^8.18.2"
   },
   "devDependencies": {
     "@types/express": "^5.0.1",
+    "@types/morgan": "^1.9.9",
     "@types/node": "^22.15.17",
     "@types/socket.io": "^3.0.1",
     "@types/ws": "^8.18.1",
