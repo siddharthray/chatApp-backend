@@ -2,16 +2,12 @@ import express from "express";
 import { CustomError } from "../types/index.js";
 import { config } from "../config/environment.js";
 
-type Request = express.Request;
-type Response = express.Response;
-type NextFunction = express.NextFunction;
-
 export const globalErrorHandler = (
   err: CustomError,
-  req: Request,
-  res: Response,
-  _next: NextFunction
-) => {
+  req: express.Request,
+  res: express.Response,
+  _next: express.NextFunction
+): void => {
   const status = err.status || err.statusCode || 500;
 
   const errorResponse: any = {
@@ -35,4 +31,5 @@ export const globalErrorHandler = (
   }
 
   res.status(status).json(errorResponse);
+  return;
 };

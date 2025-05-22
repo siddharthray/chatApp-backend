@@ -1,28 +1,116 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Socket.IO</title>
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <title>Socket.IO Test Client</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      #messages {
+        border: 1px solid #ccc;
+        height: 300px;
+        overflow-y: scroll;
+        padding: 10px;
+        margin: 10px 0;
+      }
+      input[type="text"] {
+        width: 300px;
+        padding: 5px;
+      }
+      button {
+        padding: 5px 10px;
+      }
+      .message {
+        margin: 5px 0;
+      }
+      .status {
+        color: #666;
+        font-style: italic;
+      }
+      .error {
+        color: red;
+      }
+      .success {
+        color: green;
+      }
+    </style>
   </head>
   <body>
-    <h3>Socket.IO</h3>
-    <input id="sio-msg" placeholder="Type message" />
-    <button onclick="sendSIO()">Send</button>
-    <ul id="sio-log"></ul>
+    <h1>Socket.IO Test Client</h1>
 
+    <div>
+      <span id="status" class="status">Connecting...</span>
+    </div>
+
+    <div>
+      <input type="text" id="messageInput" placeholder="Type a message..." />
+      <button id="send">Send Message</button>
+    </div>
+
+    <div id="messages"></div>
+
+    <script src="/socket.io/socket.io.js"></script>
     <script>
+      const messagesDiv = document.getElementById("messages");
+      const statusSpan = document.getElementById("status");
+      const messageInput = document.getElementById("messageInput");
+      const sendBtn = document.getElementById("send");
+
+      function addMessage(message, type = "message") {
+        const div = document.createElement("div");
+        div.className = `message ${type}`;
+        div.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+        messagesDiv.appendChild(div);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      }
+
+      function updateStatus(status, type = "status") {
+        statusSpan.textContent = status;
+        statusSpan.className = type;
+      }
+
+      // Connect to Socket.IO
       const socket = io();
 
-      socket.on("message", (msg) => {
-        const li = document.createElement("li");
-        li.textContent = msg;
-        document.getElementById("sio-log").appendChild(li);
+      socket.on("connect", () => {
+        addMessage("Connected to Socket.IO server", "success");
+        updateStatus("Connected", "success");
+        console.log("Socket.IO connected:", socket.id);
       });
 
-      function sendSIO() {
-        const msg = document.getElementById("sio-msg").value;
-        socket.emit("message", msg);
-      }
+      socket.on("disconnect", (reason) => {
+        addMessage(`Disconnected: ${reason}`, "error");
+        updateStatus("Disconnected", "error");
+        console.log("Socket.IO disconnected:", reason);
+      });
+
+      socket.on("message", (data) => {
+        addMessage(`Received: ${data}`);
+        console.log("Socket.IO message received:", data);
+      });
+
+      socket.on("error", (error) => {
+        addMessage(`Error: ${error}`, "error");
+        console.error("Socket.IO error:", error);
+      });
+
+      // Send message
+      sendBtn.addEventListener("click", () => {
+        const message = messageInput.value.trim();
+        if (message) {
+          console.log("Sending message:", message);
+          socket.emit("message", message);
+          addMessage(`Sent: ${message}`, "success");
+          messageInput.value = "";
+        }
+      });
+
+      messageInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+          sendBtn.click();
+        }
+      });
     </script>
   </body>
 </html>
