@@ -1,5 +1,9 @@
 import { Request, Response } from "express";
 import * as RoomService from "../services/room.service.js";
+import {
+  CreateRoomSchema,
+  SearchRoomSchema,
+} from "../validators/room.schema.js";
 
 export const getDefaultRooms = async (
   _: Request,
@@ -13,12 +17,14 @@ export const searchRooms = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const { q } = req.query;
-  if (typeof q !== "string" || q.length < 3) {
-    res.status(400).json({ error: "Query must be at least 3 characters" });
+  const parseResult = SearchRoomSchema.safeParse(req.query);
+
+  if (!parseResult.success) {
+    res.status(400).json({ error: parseResult.error.errors[0].message });
     return;
   }
 
+  const { q } = parseResult.data;
   const results = await RoomService.searchRooms(q);
   res.json({ results });
 };
@@ -27,12 +33,14 @@ export const createRoom = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const { name } = req.body;
-  if (!name || typeof name !== "string") {
-    res.status(400).json({ error: "Room name is required" });
+  const parseResult = CreateRoomSchema.safeParse(req.body);
+
+  if (!parseResult.success) {
+    res.status(400).json({ error: parseResult.error.errors[0].message });
     return;
   }
 
+  const { name } = parseResult.data;
   await RoomService.createRoom(name);
   res.status(201).json({ status: "Room created" });
 };
