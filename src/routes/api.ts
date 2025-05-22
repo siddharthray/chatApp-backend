@@ -2,6 +2,11 @@ import express from "express";
 import { config } from "../config/environment.js";
 import { CustomError } from "../types/index.js";
 import redis from "../config/redisClient.js";
+import {
+  getDefaultRooms,
+  searchRooms,
+  createRoom,
+} from "../controllers/room.controller.js";
 
 type Request = express.Request;
 type Response = express.Response;
@@ -36,5 +41,8 @@ router.get("/test-error", (_: Request, res: Response, next: NextFunction) => {
   error.status = 500;
   next(error);
 });
+router.get("/rooms/default", getDefaultRooms);
+router.get("/rooms/search", searchRooms);
+router.post("/rooms", createRoom);
 
 export { router as apiRouter };

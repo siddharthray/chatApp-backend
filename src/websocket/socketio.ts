@@ -6,7 +6,7 @@ import {
   addUserToRoom,
   removeUserFromRoom,
   getUsersInRoom,
-} from "../services/chatService.js";
+} from "../services/chat.service.js";
 
 export const setupSocketIO = (io: Server) => {
   io.on("connection", (socket: Socket) => {
