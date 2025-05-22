@@ -4,6 +4,13 @@ import { config } from "./environment.js";
 
 const redis = new Redis(config.REDIS_URL, {
   retryStrategy: (times) => {
+    console.log(`[Redis] Retry attempt #${times}`);
+    console.log(`[Redis] This is attempt number: ${times}`);
+
+    if (times > 10) {
+      console.log("[Redis] Too many retries, giving up");
+      return null; // Stop retrying
+    }
     const delay = Math.min(times * 50, 2000); // exponential backoff
     console.warn(`[Redis] Retry attempt #${times}, delaying ${delay}ms`);
     return delay;
