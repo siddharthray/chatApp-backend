@@ -8,6 +8,7 @@ import { globalErrorHandler, notFoundHandler } from "./middleware/index.js";
 import { setupWebSockets } from "./websocket/index.js";
 import { setupProcessHandlers } from "./utils/processHandlers.js";
 import { setupGracefulShutdown } from "./utils/gracefulShutdown.js";
+import { ensureDefaultRoomsExist } from "./services/room.service.js";
 
 // Initialize Express app
 const app = express();
@@ -37,10 +38,16 @@ const { io } = setupWebSockets(server);
 setupGracefulShutdown(server, io);
 
 // Start server
-server.listen(config.PORT, () => {
-  console.log(`Server running at http://localhost:${config.PORT}`);
-  console.log(`Environment: ${config.NODE_ENV}`);
-  console.log(
-    `API endpoints available at: http://localhost:${config.PORT}${config.API_PREFIX}`
-  );
-});
+const startServer = async () => {
+  await ensureDefaultRoomsExist();
+
+  server.listen(config.PORT, () => {
+    console.log(`Server running at http://localhost:${config.PORT}`);
+    console.log(`Environment: ${config.NODE_ENV}`);
+    console.log(
+      `API endpoints: http://localhost:${config.PORT}${config.API_PREFIX}`
+    );
+  });
+};
+
+startServer();

@@ -5,6 +5,19 @@ export const getDefaultRooms = async (): Promise<string[]> => {
   return ["general", "tech", "random", "support"];
 };
 
+export const ensureDefaultRoomsExist = async (): Promise<void> => {
+  const defaults = await getDefaultRooms();
+  const existing = await Redis.smembers("rooms:all");
+  const missing = defaults.filter((room) => !existing.includes(room));
+
+  if (missing.length > 0) {
+    await Redis.sadd("rooms:all", ...missing);
+    console.log("[RoomService] Default rooms added:", missing);
+  } else {
+    console.log("[RoomService] Default rooms already exist.");
+  }
+};
+
 export const searchRooms = async (query: string): Promise<string[]> => {
   const allRooms = await Redis.smembers("rooms:all");
   return allRooms
