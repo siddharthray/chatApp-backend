@@ -1,54 +1,44 @@
 // src/websocket/socketio.ts
-import { Server as HTTPServer } from "http";
-import { Server as SocketIOServer } from "socket.io";
-import { corsOptions } from "../config/cors.js";
+import type { Server, Socket } from "socket.io";
+import {
+  saveMessage,
+  getRecentMessages,
+  addUserToRoom,
+  removeUserFromRoom,
+  getUsersInRoom,
+} from "../services/chatService.js";
 
-export const setupSocketIO = (server: HTTPServer) => {
-  const io = new SocketIOServer(server, {
-    cors: corsOptions,
-  });
+export const setupSocketIO = (io: Server) => {
+  io.on("connection", (socket: Socket) => {
+    let room = "";
+    let username = "";
 
-  io.on("connection", (socket) => {
-    console.log(`[Socket.IO] Client connected: ${socket.id}`);
+    socket.on("join-room", async ({ roomName, user }) => {
+      room = roomName;
+      username = user;
+      socket.join(room);
 
-    try {
-      socket.emit("message", "Welcome from Socket.IO!");
-    } catch (error) {
-      console.error("[Socket.IO] Emit error:", error);
-    }
+      await addUserToRoom(room, username);
 
-    // 🔍 This should log when messages are received
-    socket.on("message", (data: any) => {
-      try {
-        console.log(`[Socket.IO] Message from ${socket.id}:`, data);
-        io.emit("message", `${socket.id}: ${data}`);
-      } catch (error) {
-        console.error("[Socket.IO] Message error:", error);
-        socket.emit("error", "Failed to process message");
+      const history = await getRecentMessages(room);
+      socket.emit("history", history);
+
+      const users = await getUsersInRoom(room);
+      io.to(room).emit("user-list", users);
+    });
+
+    socket.on("send-msg", async ({ roomName, from, msg }) => {
+      const payload = { from, text: msg, time: Date.now() };
+      await saveMessage(roomName, JSON.stringify(payload));
+      io.to(roomName).emit("receive-msg", payload);
+    });
+
+    socket.on("disconnect", async () => {
+      if (room && username) {
+        await removeUserFromRoom(room, username);
+        const users = await getUsersInRoom(room);
+        io.to(room).emit("user-list", users);
       }
     });
-
-    socket.on("error", (error: Error) => {
-      console.error(`[Socket.IO] Connection error for ${socket.id}:`, error);
-    });
-
-    socket.on("disconnect", (reason: string) => {
-      console.log(
-        `[Socket.IO] Client disconnected: ${socket.id}, Reason: ${reason}`
-      );
-    });
   });
-
-  // Handle Socket.IO errors
-  io.engine.on("connection_error", (err: any) => {
-    console.error("[Socket.IO] Connection error:", err.req);
-    console.error(
-      "[Socket.IO] Error details:",
-      err.code,
-      err.message,
-      err.context
-    );
-  });
-
-  return io;
 };
