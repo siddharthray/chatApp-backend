@@ -1,9 +1,9 @@
 {
-  "name": "chat-app",
+  "name": "chat-app-backend",
   "type": "module",
   "scripts": {
-    "dev": "nodemon src/server.ts",
-    "start": "ts-node src/server.ts",
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts",
     "build": "tsc",
     "start:prod": "node dist/server.js"
   },
@@ -24,6 +24,7 @@
     "@types/ws": "^8.18.1",
     "nodemon": "^3.1.10",
     "ts-node": "^10.9.2",
+    "tsx": "^4.19.4",
     "typescript": "^5.8.3"
   }
 }
