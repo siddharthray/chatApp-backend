@@ -30,9 +30,6 @@ const corsMiddleware = cors(corsOptions);
 app.use(corsMiddleware);
 app.use(express.json());
 
-// Serve static files directly from the root
-app.use(express.static(STATIC_DIR));
-
 // Add basic logging middleware
 app.use((req, _, next) => {
   if (process.env.LOG_LEVEL === "debug" || process.env.LOG_LEVEL === "info") {
@@ -50,6 +47,9 @@ app.get(`${API_PREFIX}/health`, (_, res) => {
     timestamp: new Date().toISOString(),
   });
 });
+
+// Serve static files directly from the root
+app.use(express.static(STATIC_DIR));
 
 // Create HTTP server
 const server = http.createServer(app);
