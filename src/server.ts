@@ -31,10 +31,10 @@ app.use(globalErrorHandler);
 const server = http.createServer(app);
 
 // Setup WebSockets
-const { io, wss } = setupWebSockets(server);
+const { io } = setupWebSockets(server);
 
 // Setup graceful shutdown
-setupGracefulShutdown(server, wss);
+setupGracefulShutdown(server, io);
 
 // Start server
 server.listen(config.PORT, () => {

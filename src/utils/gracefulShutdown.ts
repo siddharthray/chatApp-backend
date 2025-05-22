@@ -1,30 +1,31 @@
 import { Server as HTTPServer } from "http";
-import { WebSocketServer } from "ws";
+import { Server as SocketIOServer } from "socket.io";
 
 export const setupGracefulShutdown = (
   server: HTTPServer,
-  wss: WebSocketServer
+  io: SocketIOServer
 ) => {
   const gracefulShutdown = (signal: string): void => {
     console.log(`\nReceived ${signal}. Starting graceful shutdown...`);
 
-    server.close((err?: Error) => {
-      if (err) {
-        console.error("Error during server shutdown:", err);
-        process.exit(1);
-      }
+    // Close Socket.IO connections
+    io.close(() => {
+      console.log("Socket.IO connections closed.");
 
-      console.log("HTTP server closed.");
+      // Close HTTP server
+      server.close((err?: Error) => {
+        if (err) {
+          console.error("Error during server shutdown:", err);
+          process.exit(1);
+        }
 
-      wss.clients.forEach((client) => {
-        client.terminate();
+        console.log("HTTP server closed.");
+        console.log("Graceful shutdown completed.");
+        process.exit(0);
       });
-
-      console.log("WebSocket connections closed.");
-      console.log("Graceful shutdown completed.");
-      process.exit(0);
     });
 
+    // Force shutdown after 10 seconds
     setTimeout(() => {
       console.error("Forcing shutdown after timeout");
       process.exit(1);
