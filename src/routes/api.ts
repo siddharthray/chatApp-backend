@@ -14,8 +14,11 @@ type NextFunction = express.NextFunction;
 
 const router = express.Router();
 
-// Health check endpoint
+router.get("/rooms/default", getDefaultRooms);
+router.get("/rooms/search", searchRooms);
+router.post("/rooms", createRoom);
 
+// Health check endpoint
 router.get("/health", async (_: Request, res: Response) => {
   let redisStatus = "unknown";
 
@@ -41,8 +44,5 @@ router.get("/test-error", (_: Request, res: Response, next: NextFunction) => {
   error.status = 500;
   next(error);
 });
-router.get("/rooms/default", getDefaultRooms);
-router.get("/rooms/search", searchRooms);
-router.post("/rooms", createRoom);
 
 export { router as apiRouter };
