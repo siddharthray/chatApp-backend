@@ -40,7 +40,7 @@ export const createRoom = async (
     return;
   }
 
-  const { name } = parseResult.data;
-  await RoomService.createRoom(name);
+  const { name, limit } = parseResult.data;
+  await RoomService.createRoom(name, limit);
   res.status(201).json({ status: "Room created" });
 };

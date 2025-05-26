@@ -28,7 +28,7 @@ export const setupSocketIO = (io: Server) => {
     });
 
     socket.on("send-msg", async ({ roomName, from, msg }) => {
-      const payload = { from, text: msg, time: Date.now() };
+      const payload = { from, msg, time: Date.now() };
       await saveMessage(roomName, JSON.stringify(payload));
       io.to(roomName).emit("receive-msg", payload);
     });
